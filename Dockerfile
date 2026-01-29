@@ -12,6 +12,7 @@ WORKDIR /app
 
 # Copy requirements and install dependencies
 COPY requirements.txt .
+COPY app.py .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir uvloop streamlit requests streamlit-autorefresh
 
