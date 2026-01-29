@@ -1,3 +1,13 @@
+---
+title: A.I.T.I.A Cloud Control Plane
+emoji: 🦉
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+app_port: 7860
+---
+
 # 🧠 A.I.T.I.A (Cloud Optimized)
 ### **Autonomous Investigation & Treatment of Infrastructure Anomalies**
 #### *A Cloud-Native SRE Agent with Causal Reasoning & Predictive ML*
