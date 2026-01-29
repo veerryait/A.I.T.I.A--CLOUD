@@ -1,17 +1,27 @@
 import ollama
+from groq import Groq
 import json
 import asyncio
+import os
 from typing import Dict, List
-from functools import lru_cache
 import hashlib
 
 class LocalDiagnostician:
     """
-    Uses Phi-3 Mini (3.8B parameters, 4-bit quantized)
-    Fits in M3 8GB alongside other services
+    Hybrid Diagnostician:
+    - Uses Groq (Llama 3.1 8B) if API key is present (No RAM footprint)
+    - Fallbacks to Ollama (Phi-3 Mini) if running locally without key
     """
-    def __init__(self, model: str = "phi3:mini"):
-        self.model = model
+    def __init__(self, model: str = None):
+        self.api_key = os.getenv("GROQ_API_KEY")
+        if self.api_key:
+            self.client = Groq(api_key=self.api_key)
+            self.model = model or "llama-3.1-8b-instant"
+            print(f"Using Groq Engine ({self.model})")
+        else:
+            self.model = model or "phi3:mini"
+            print(f"Using Ollama Engine ({self.model})")
+            
         self.system_prompt = """You are an expert Site Reliability Engineer.
 Analyze the system failure context and provide structured diagnosis.
 
@@ -28,19 +38,9 @@ Respond ONLY in JSON format:
     "recommended_action": "action_name",
     "reasoning": "one sentence explanation"
 }"""
-        
-    def _generate_cache_key(self, context: Dict) -> str:
-        """Cache responses for identical contexts to save GPU"""
-        return hashlib.md5(json.dumps(context, sort_keys=True).encode()).hexdigest()[:16]
-    
+
     async def diagnose(self, context: Dict) -> Dict:
-        """
-        Async wrapper for Ollama call
-        Context keys: service, latency, error_rate, similar_incidents, causal_chain
-        """
-        cache_key = self._generate_cache_key(context)
-        
-        # Build prompt
+        """Context keys: service, latency, error_rate, similar_incidents, causal_chain"""
         similar = context.get('similar_incidents', [])
         similar_text = "\n".join([f"- {s['metadata']['service']}: {s['message']}" for s in similar[:3]])
         
@@ -58,67 +58,43 @@ Historical Similar Incidents:
 Provide JSON diagnosis:"""
 
         try:
-            # Run in thread pool to not block async loop
-            loop = asyncio.get_event_loop()
-            response = await loop.run_in_executor(
-                None,  # Default executor
-                lambda: ollama.chat(
+            if self.api_key:
+                # Groq API Call
+                response = self.client.chat.completions.create(
                     model=self.model,
                     messages=[
-                        {'role': 'system', 'content': self.system_prompt},
-                        {'role': 'user', 'content': user_prompt}
+                        {"role": "system", "content": self.system_prompt},
+                        {"role": "user", "content": user_prompt}
                     ],
-                    format='json',
-                    options={
-                        'temperature': 0.1,  # Deterministic
-                        'num_predict': 200,  # Limit token generation for speed
-                        'num_ctx': 2048      # Context window
-                    }
+                    response_format={"type": "json_object"},
+                    temperature=0.1
                 )
-            )
+                raw_content = response.choices[0].message.content
+            else:
+                # Local Ollama Call
+                loop = asyncio.get_event_loop()
+                response = await loop.run_in_executor(
+                    None,
+                    lambda: ollama.chat(
+                        model=self.model,
+                        messages=[
+                            {'role': 'system', 'content': self.system_prompt},
+                            {'role': 'user', 'content': user_prompt}
+                        ],
+                        format='json',
+                        options={'temperature': 0.1}
+                    )
+                )
+                raw_content = response['message']['content']
             
-            raw_content = response['message']['content']
-            
-            # Parse JSON (Phi-3 is usually good at this)
             diagnosis = json.loads(raw_content)
-            
-            # Validation
-            if 'confidence_score' not in diagnosis:
-                diagnosis['confidence_score'] = 0.5
-            if 'recommended_action' not in diagnosis:
-                diagnosis['recommended_action'] = 'page_human'
-                
             return diagnosis
             
-        except json.JSONDecodeError:
+        except Exception as e:
+            print(f"LLM Diagnosis Error: {e}")
             return {
-                "root_cause": "Parse error in LLM response",
+                "root_cause": f"Diagnosis Failed: {str(e)}",
                 "confidence_score": 0.0,
                 "recommended_action": "page_human",
-                "raw_response": raw_content
+                "reasoning": "Check LLM connectivity or API keys"
             }
-        except Exception as e:
-            return {
-                "root_cause": f"LLM Error: {str(e)}",
-                "confidence_score": 0.0,
-                "recommended_action": "page_human"
-            }
-
-# Test
-async def test():
-    client = LocalDiagnostician()
-    test_context = {
-        'service': 'payment-db',
-        'latency': 2500,
-        'error_rate': 0.45,
-        'causal_chain': 'db_lock -> pool_wait -> latency',
-        'similar_incidents': [
-            {'metadata': {'service': 'payment-db'}, 'message': 'connection timeout'}
-        ]
-    }
-    result = await client.diagnose(test_context)
-    print(json.dumps(result, indent=2))
-
-if __name__ == "__main__":
-    print("Testing LLM (first call loads model, takes 10s)...")
-    asyncio.run(test())

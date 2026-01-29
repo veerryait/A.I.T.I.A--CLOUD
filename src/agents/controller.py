@@ -115,30 +115,38 @@ class AsyncRCAController:
     
     async def _analysis_loop(self):
         """Stage 2: Causal analysis + LLM diagnosis"""
+        self.last_diagnosis_time = None
+        
         while self._running:
-            await asyncio.sleep(2)  # Analyze every 2 seconds
+            await asyncio.sleep(2)  # Check for anomalies every 2 seconds
             
+            # Rate limit: only run diagnosis every 30 seconds to respect Groq free tier
+            if self.last_diagnosis_time and (datetime.now() - self.last_diagnosis_time).seconds < 30:
+                continue
+
             # Check for anomalies in recent data
-            # Run in executor because Chroma get is sync
             recent_errors = await asyncio.get_event_loop().run_in_executor(
                 None, self.memory.get_recent_errors, 5  # Last 5 minutes
             )
             
             if len(recent_errors) > 3:  # Threshold for investigation
-                logger.info(f"Anomaly detected: {len(recent_errors)} recent errors")
+                logger.info(f"Anomaly detected: {len(recent_errors)} recent errors. Analyzing...")
+                
+                # Update cooldown
+                self.last_diagnosis_time = datetime.now()
                 
                 # Get causal context (synchronous, CPU-bound)
                 context = await self._build_context(recent_errors)
                 
-                # LLM Diagnosis (async, GPU-bound)
+                # LLM Diagnosis (async)
                 diagnosis = await self.diagnostician.diagnose(context)
                 
-                if diagnosis['confidence_score'] > 0.8:
+                if diagnosis.get('confidence_score', 0) > 0.8:
                     await self.action_queue.put({
                         'type': 'remediate',
-                        'action': diagnosis['recommended_action'],
-                        'target': diagnosis['affected_service'],
-                        'reason': diagnosis['root_cause']
+                        'action': diagnosis.get('recommended_action', 'page_human'),
+                        'target': diagnosis.get('affected_service', 'unknown'),
+                        'reason': diagnosis.get('root_cause', 'Anomalous behavior detected')
                     })
     
     async def _build_context(self, error_df: pd.DataFrame) -> Dict:
