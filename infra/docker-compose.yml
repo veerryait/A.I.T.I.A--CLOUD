@@ -1,0 +1,38 @@
+version: '3.8'
+services:
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama:/root/.ollama
+    ports:
+      - "11434:11434"
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
+  api:
+    build: ..
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    depends_on:
+      - ollama
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+
+  dashboard:
+    build: ..
+    command: streamlit run dashboards/main.py --server.port=8501
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api:8000
+    depends_on:
+      - api
+
+volumes:
+  ollama:
