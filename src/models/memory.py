@@ -1,25 +1,21 @@
+import os
 import chromadb
 from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
 import pandas as pd
 from datetime import datetime, timedelta
 from typing import List, Dict
-import os
-import shutil
+
+# HF Space Persistent Storage Bridge
+HF_PERSIST_DIR = "/data/chroma" if os.getenv("HF_SPACE") == "1" else "./data/chroma"
 
 class HybridLogStore:
     """
     ChromaDB embedded ( DuckDB + Parquet ) 
     Memory footprint: ~150MB for 10k logs
     """
-    def __init__(self, persist_dir: str = None):
-        # Default to /data/chroma for Hugging Face Persistent Storage
-        # Fallback to local data/chroma for dev
-        if persist_dir:
-            self.persist_dir = persist_dir
-        else:
-            self.persist_dir = "/data/chroma" if os.getenv("PERSIST_DATA") == "true" else "data/chroma"
-            
+    def __init__(self, persist_dir: str = HF_PERSIST_DIR):
+        self.persist_dir = persist_dir
         os.makedirs(self.persist_dir, exist_ok=True)
         
         # Use Tiny model for M3 efficiency (22MB vs 400MB)
