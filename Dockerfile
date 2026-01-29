@@ -1,4 +1,4 @@
-# Use Python 3.11 slim as base
+# Use Python 3.11 as base
 FROM python:3.11-slim
 
 # Install system dependencies
@@ -15,19 +15,25 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir uvloop streamlit requests streamlit-autorefresh
 
-# Pre-download embedding model
+# Pre-download embedding model (Lightweight: 22MB)
 RUN python3 -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
 
 # Copy project files
 COPY src/ ./src/
 COPY dashboards/ ./dashboards/
-COPY data/ ./data/
+COPY scripts/ ./scripts/
 
-# Set Python path
+# Ensure necessary directories exist
+RUN mkdir -p data/chroma /data/chroma && chmod -R 777 /app/data /data
+
+# Set Environment Variables
 ENV PYTHONPATH=/app
+ENV API_URL=http://localhost:8000
+ENV PERSIST_DATA=true
 
-# Expose ports for API and Streamlit
-EXPOSE 8000 8501
+# Hugging Face Spaces use port 7860
+EXPOSE 7860
 
-# Default command (overridden by docker-compose for specific services)
-CMD ["python", "src/api/server.py"]
+# Start script
+RUN chmod +x scripts/start_hf.sh
+CMD ["/app/scripts/start_hf.sh"]
