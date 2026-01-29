@@ -7,7 +7,15 @@ from datetime import datetime, timedelta
 from typing import List, Dict
 
 # HF Space Persistent Storage Bridge
-HF_PERSIST_DIR = "/data/chroma" if os.getenv("HF_SPACE") == "1" else "./data/chroma"
+def is_huggingface_space() -> bool:
+    """Detection for HF Spaces persistent storage environment"""
+    return os.getenv("HF_SPACE") == "1" or os.path.exists("/data") or "SPACE_ID" in os.environ
+
+if is_huggingface_space():
+    os.environ["HF_SPACE"] = "1"
+    HF_PERSIST_DIR = "/data/chroma"
+else:
+    HF_PERSIST_DIR = "./data/chroma"
 
 class HybridLogStore:
     """
@@ -165,6 +173,20 @@ class HybridLogStore:
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         cutoff = datetime.now() - timedelta(minutes=minutes)
         return df[df['timestamp'] > cutoff]
+
+    def flush_all_history(self):
+        """Wipe all logs from the vector store"""
+        try:
+            self.client.delete_collection(name="system_logs")
+            self.collection = self.client.get_or_create_collection(
+                name="system_logs",
+                metadata={"hnsw:space": "cosine"}
+            )
+            print("History flushed successfully.")
+            return True
+        except Exception as e:
+            print(f"Flush error: {e}")
+            return False
 
 # Test
 if __name__ == "__main__":

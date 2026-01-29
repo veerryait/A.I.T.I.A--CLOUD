@@ -1,99 +1,96 @@
-# 🧠 A.I.T.I.A
+# 🧠 A.I.T.I.A (Cloud Optimized)
 ### **Autonomous Investigation & Treatment of Infrastructure Anomalies**
+#### *A Cloud-Native SRE Agent with Causal Reasoning & Predictive ML*
 
-A.I.T.I.A is a cutting-edge, **local-first** autonomous SRE (Site Reliability Engineering) agent. It uses **Causal Inference** and **Local LLMs** to detect, diagnose, and suggest remediations for microservice failures in real-time—all with **zero cloud cost** and total data privacy.
-
----
-
-## 🚀 Key Features
-- **Causal Discovery**: Automatically builds a graph of service dependencies and identifies the root cause using the PC algorithm.
-- **Local AI Brain**: Powered by `phi3:mini` running via Ollama for private, high-speed diagnostics.
-- **Semantic Log Memory**: Uses ChromaDB to store and retrieve similar past incidents for faster resolution.
-- **Service Discovery**: Real-time monitoring of API Gateways, User Services, Payment DBs, and Redis Caches.
-- **Instant Remediation**: Recommends technical actions (e.g., `restart_service`, `increase_pool`, `flush_cache`) based on dynamic causal chains.
+A.I.T.I.A is a production-ready **Autonomous SRE Agent** designed for the cloud. Unlike traditional monitoring tools that simply flag errors, A.I.T.I.A acts as a "Site Reliability Architect" that uses **Causal Inference**, **Predictive Forecasting**, and **Active Learning** to detect, diagnose, and prescribe fixes for complex infrastructure failures.
 
 ---
 
-## 🏗️ Tech Stack
-- **AI/ML**: Ollama (`phi3:mini`), Sentence-Transformers (`all-MiniLM-L6-v2`)
-- **Causal Engine**: DoWhy, NetworkX
-- **Backend**: FastAPI, Uvicorn, UVLoop
-- **Frontend**: Streamlit (with real-time auto-refresh)
-- **Database**: ChromaDB (Vector Store)
-- **Ops**: Docker, Docker Compose
+## 🚀 Key Innovation: The "Intelligence Bridge"
+A.I.T.I.A goes beyond software metrics. It features a unique **Bridging Logic** that allows it to reason about physical-to-digital failures.
+
+> **Example**: If you report *"Water leaking from rack 4"*, A.I.T.I.A understands this causes **Hardware Thermal Failure**, leading to **Instruction Throttling** and ultimately **DB Lock Contention**. It will then prescribe `kubectl set resources` to mitigate the throttling.
 
 ---
 
-## 🛠️ Installation
+## 🌟 Production-Grade Features (New in v3.0)
 
-### Prerequisites
-1.  **Docker & Docker Compose**: [Install here](https://www.docker.com/products/docker-desktop/)
-2.  **Ollama**: [Install here](https://ollama.com/) (Required for local LLM inference)
+### 1. 🔍 Causal Root Cause Analysis (DoWhy)
+- Uses statistical **Average Treatment Effect (ATE)** calculations to prove causality.
+- Differentiates between symptom (Latency) and root cause (Database Deadlock).
+- **Technology**: `DoWhy`, `NetworkX`.
 
-### Setup Steps
+### 2. 🔮 Predictive Analytics (ML Forecasting)
+- **Time-Series Forecasting**: Uses a Linear Regression engine to project latency trends 30 minutes into the future.
+- **SLO Warning System**: Automatically alerts operators if the *Projected Latency* is expected to breach the 1000ms SLO.
+- **Technology**: `Scikit-Learn`, `Pandas`, `Plotly`.
+
+### 3. 🧠 Active Learning Feedback Loop (RLHF)
+- **Human-in-the-Loop**: Every diagnosis card features `👍 Correct` / `👎 Incorrect` buttons.
+- **Gold Standard Dataset**: User feedback is saved to `data/feedback_dataset.jsonl` to create a verified dataset for future model fine-tuning.
+
+### 4. ☁️ Cloud-Native Architecture
+- **Unified Control Plane**: Single-container `app.py` optimized for Hugging Face Spaces.
+- **Groq Cloud Brain**: Powered by **Llama-3-70B** via Groq API for architect-level reasoning with zero local footprint.
+- **Persistent Memory**: Auto-detects persistent volumes (`/data`) to safeguard vector history.
+
+---
+
+## 🛠️ Quick Start
+
+### Option A: Hugging Face Spaces (Recommended)
+1.  Target Hardware: **CPU Basic** (Free Tier).
+2.  Set Secret: `GROQ_API_KEY` in settings.
+3.  Deploy. The system auto-configures persistence.
+
+### Option B: Local Docker
 1.  **Clone the Repository**
     ```bash
-    git clone https://github.com/veerryait/A.I.T.I.A.git
-    cd A.I.T.I.A
+    git clone https://github.com/veerryait/A.I.T.I.A--CLOUD.git
+    cd A.I.T.I.A--CLOUD
     ```
-
-2.  **Pull the AI Model**
-    Open your terminal and run:
+2.  **Add API Key**
     ```bash
-    ollama pull phi3:mini
+    export GROQ_API_KEY="your_key_here"
     ```
-
-3.  **Start the Factory**
+3.  **Run Streamlit App**
     ```bash
-    docker-compose -f infra/docker-compose.yml up --build -d
+    pip install -r requirements.txt
+    streamlit run app.py
     ```
 
 ---
 
-## 🎮 How to Use
+## 🎮 How to Use (The Drill)
 
-1.  **Open the Dashboard**
-    Navigate to `http://localhost:8501` in your browser.
+### 1. 📥 Ingest Log (Simulation)
+Inject distinct failure scenarios to test the agent:
+*   **Database Deadlock**: Set `DB Lock Time > 800ms`.
+*   **Cache Miss Storm**: Message "Cache miss rate > 80%".
+*   **Physical Failure**: Message "Water leaking from rack".
 
-2.  **Scenario Training (The Drill)**
-    Check out the [Verification Guide](verification_guide.md) (or see internal artifacts) for specific scenarios like "Database Deadlocks" or "Connection Pool Exhaustion."
+### 2. 🚀 Analyze & Forecast
+*   Click **Analyze Now** to trigger the Groq Architect.
+*   Check the **"📈 Forecast"** tab to see if your injection will cause a future outage.
 
-3.  **Investigate**
-    - Use the **Ingest Log** form to simulate errors.
-    - Watch the **Recent AI Actions** cards appear as the "Smart Owl" analyzes the logs.
-    - Use the **Search logs** box for semantic search over historical failures.
-
-4.  **Maintenance**
-    - **Clear AI Cards**: Cleans your dashboard UI.
-    - **Wipe All Memory**: Completely resets the vector database and stats for a fresh start.
-
----
-
-## 🧠 How it Works: The Inner Brain
-
-### 1. The Ingestion Loop
-Logs arrive at the FastAPI server and are immediately embedded using a tiny (22MB) but powerful Transformer model. These are stored in ChromaDB.
-
-### 2. The Causal Engine
-When errors cross a threshold, the system triggers a **Causal Discovery** pass. It uses structural causal models to determine if an error in a "Payment DB" is the true root cause or just a symptom of a "User Service" lag.
-
-### 3. The LLM Diagnostician
-The controller passes the causal graph + the raw error logs to **Phi-3**. Because the AI has "Local Memory" and "Causal Logic," it doesn't just guess—it reasons about the infrastructure.
+### 3. 👍 Teach the AI
+*   Use the feedback buttons to rate the diagnosis. This reinforces the "Bridging Logic".
 
 ---
 
 ## 📂 Project Structure
 ```text
 .
-├── dashboards/         # Streamlit UI
-├── infra/              # Docker Compose & orchestrator configs
+├── app.py                  # Unified Cloud Control Plane
 ├── src/
-│   ├── agents/         # Async Controller & Orchestrator
-│   ├── api/            # FastAPI Server
-│   ├── causal/         # DoWhy & NetworkX logic
-│   ├── models/         # LLM Client & ChromaDB Memory
-│   └── ingestion/      # Synthetic log generators
-└── tests/              # End-to-end smoke tests
+│   ├── causal/             # DoWhy Inference Engine
+│   ├── models/
+│   │   ├── groq_client.py  # The "Architect" Logic (Bridging)
+│   │   ├── forecasting.py  # ML Time-Series Engine
+│   │   └── memory.py       # ChromaDB Vector Store
+├── data/                   # Persistent storage (auto-mounted)
+├── Dockerfile.hf           # Cloud-optimized build
+└── requirements.txt        # Production dependencies
 ```
 
 ---
@@ -101,4 +98,4 @@ The controller passes the causal graph + the raw error logs to **Phi-3**. Becaus
 ## 📜 License
 MIT License. Created by [Veerryait](https://github.com/veerryait).
 
-**May your latencies stay low and your cache hits stay high!** 🚀🦉✨
+**"Autonomous SRE: Because software should fix itself."** 🦉✨

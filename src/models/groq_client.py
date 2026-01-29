@@ -13,20 +13,40 @@ class GroqDiagnostician:
         if not api_key:
             raise ValueError("Groq API Key is required for cloud deployment.")
         self.client = Groq(api_key=api_key)
-        self.model = "llama-3.1-8b-instant"
+        self.model = "llama-3.3-70b-versatile"
         self.system_prompt = (
-            "You are AITIA SRE AI. Analyze root cause. "
-            "JSON response only with keys: root_cause, confidence_score (0-1), "
-            "recommended_action, affected_service, reasoning"
+            "You are AITIA: THE HIGH-LEVEL ARCHITECT. "
+            "You translate human symptoms into technical infrastructure bridges. "
+            "### MANDATORY BRIDGING LOGIC: "
+            "1. NO REBOOTS: Suggesting 'kubectl restart', 'rollout', or 'reboot' is a disqualification. You must provide structural fixes. "
+            "2. THE WATER BRIDGE: If the symptom is 'water logging', you MUST interpret this as 'Hardware Thermal Failure' or 'Coolant Leak' causing 'Instruction Throttling' which results in 'DB Lock Contention'. "
+            "3. NO DISMISSAL: Never say a symptom is unrelated. Find the bridge. "
+            "4. OUTPUT FORMAT (JSON): "
+            "   - 'SRE_DIAGNOSIS': Technical title. "
+            "   - 'CONFIDENCE': 0-1. "
+            "   - 'CLI_MITIGATION': Specific commands (e.g. scale-up, failover, config tuning). "
+            "   - 'CAUSAL_BRIDGE': The reasoning linking symptom to lock. "
+            "   - 'SERVICE': Service name."
         )
         
     def diagnose(self, context_dict: dict) -> dict:
         """
         Synchronous diagnosis using Groq API.
-        Handles rate limits (429) by returning a low-confidence response.
         """
-        # Format the prompt with context
-        user_prompt = f"Context: {json.dumps(context_dict, indent=2)}"
+        # DEBUG: Print prompt to verify cache is bypassed
+        print(f"--- SRE DIAGNOSTIC TRACE ---")
+        print(f"Model: {self.model}")
+        print(f"Symptom: {context_dict.get('incident_telemetry', {}).get('non_technical_symptom_text')}")
+        
+        user_prompt = (
+            f"DIAGNOSE THIS INCIDENT:\n"
+            f"CONTEXT: {json.dumps(context_dict, indent=2)}\n\n"
+            f"YOU MUST FOLLOW THIS REASONING CHAIN:\n"
+            f"1. Acknowledge the 'non_technical_symptom_text'.\n"
+            f"2. Explain how that symptom specifically causes the observed sensor peaks (DB Lock/Pool Wait).\n"
+            f"3. Rule out 'Restarting' as a solution.\n"
+            f"4. Provide a command-line fix that addresses the structural cause."
+        )
         
         try:
             response = self.client.chat.completions.create(
@@ -36,10 +56,11 @@ class GroqDiagnostician:
                     {"role": "user", "content": user_prompt}
                 ],
                 response_format={"type": "json_object"},
-                temperature=0.1
+                temperature=0.0 # Extreme precision
             )
             
             raw_content = response.choices[0].message.content
+            print(f"Diagnosis Result: {raw_content[:100]}...")
             return json.loads(raw_content)
             
         except Exception as e:
