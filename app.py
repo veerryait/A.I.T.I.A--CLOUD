@@ -257,19 +257,6 @@ with main_tab:
                         diagnosis = diagnoser.diagnose(context)
                         
                         # Store in session state for persistence
-                        st.session_state['last_analysis'] = {
-                            'diagnosis': diagnosis,
-                            'context': context,
-                            'timestamp': datetime.now().isoformat()
-                        }
-                        
-            # 4. Render Result (Persistent) & Feedback Loop
-            if 'last_analysis' in st.session_state:
-                analysis = st.session_state['last_analysis']['diagnosis']
-                
-                root_cause = analysis.get('SRE_DIAGNOSIS', 'Unknown')
-                confidence = analysis.get('CONFIDENCE', 0)
-                action = analysis.get('CLI_MITIGATION', 'N/A')
                 reasoning = analysis.get('CAUSAL_BRIDGE', 'No reasoning provided.')
                 if isinstance(reasoning, list):
                     reasoning = "\n- ".join(reasoning)
